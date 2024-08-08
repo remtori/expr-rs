@@ -1,18 +1,18 @@
-mod parser;
-mod rt;
+use expr::{Expr, Program, Registry, Value};
 
 fn main() {
-    let registry = rt::Registry {
-        vars: vec![(b"z".to_vec(), rt::Value::Int(99))],
+    let registry = Registry {
+        vars: vec![(b"z".to_vec(), Value::Int(99))],
         fns: vec![(b"pow".to_vec(), builtin::pow)],
     };
 
-    let program = rt::Program::compile(&registry, b"1 + pow(2, 3) * 4").unwrap();
+    let expr = Expr::from_src(b"1 + pow(2, 3) * 4").unwrap();
+    let program = Program::compile(&registry, &expr).unwrap();
     println!("{:?}", program.run(&registry));
 }
 
 mod builtin {
-    use crate::rt::Value;
+    use expr::Value;
 
     pub fn pow(args: &[Value]) -> Value {
         match (args[0], args[1]) {

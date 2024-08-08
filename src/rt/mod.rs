@@ -1,13 +1,24 @@
-use crate::parser::parse;
+use crate::parser::Expr;
 
+mod error;
 mod ix;
 
+pub use error::RuntimeError;
 use ix::{Instruction, WriteInstruction};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Value {
     Int(i64),
     Float(f64),
+}
+
+impl Value {
+    pub fn as_float(&self) -> f64 {
+        match self {
+            Value::Int(v) => *v as f64,
+            Value::Float(v) => *v,
+        }
+    }
 }
 
 pub struct Registry {
@@ -20,11 +31,9 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn compile(registry: &Registry, source: &[u8]) -> Result<Program, String> {
-        let tokens = parse(source)?;
-
+    pub fn compile(registry: &Registry, expr: &Expr) -> Result<Program, RuntimeError> {
         let mut instructions = Vec::new();
-        tokens.write_instruction(registry, &mut instructions)?;
+        expr.write_instruction(registry, &mut instructions)?;
         Ok(Program { instructions })
     }
 
@@ -36,13 +45,12 @@ impl Program {
                 Instruction::PushLitFloat(v) => stack.push(Value::Float(v)),
                 Instruction::PushVariable { ident } => stack.push(registry.vars[ident as usize].1),
                 Instruction::Call { ident, arg_count } => {
+                    debug_assert!((arg_count as usize) < stack.len());
+
                     let args = &stack[stack.len() - arg_count as usize..stack.len()];
                     let ret = registry.fns[ident as usize].1(args);
 
-                    for _ in 0..arg_count {
-                        stack.pop();
-                    }
-
+                    stack.drain(stack.len() - arg_count as usize..stack.len());
                     stack.push(ret);
                 }
                 Instruction::Add
@@ -55,7 +63,6 @@ impl Program {
                 | Instruction::Xor => {
                     let b = stack.pop().unwrap();
                     let a = stack.pop().unwrap();
-
                     let ret = match (a, b) {
                         (Value::Int(a), Value::Int(b)) => match ins {
                             Instruction::Add => Value::Int(a + b),
@@ -68,7 +75,18 @@ impl Program {
                             Instruction::Xor => Value::Int(a ^ b),
                             _ => unreachable!(),
                         },
-                        _ => todo!(),
+                        _ => {
+                            let a = a.as_float();
+                            let b = b.as_float();
+                            match ins {
+                                Instruction::Add => Value::Float(a + b),
+                                Instruction::Sub => Value::Float(a - b),
+                                Instruction::Mul => Value::Float(a * b),
+                                Instruction::Div => Value::Float(a / b),
+                                Instruction::Mod => Value::Float(a % b),
+                                _ => unreachable!(),
+                            }
+                        }
                     };
 
                     stack.push(ret);
@@ -85,6 +103,7 @@ impl Program {
             }
         }
 
+        debug_assert!(stack.len() == 1);
         stack.pop().unwrap()
     }
 }

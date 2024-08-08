@@ -1,5 +1,7 @@
 use crate::parser::Expr;
 
+use super::RuntimeError;
+
 #[derive(Debug, Clone, Copy)]
 pub enum Instruction {
     PushLitInt(i64),
@@ -22,7 +24,7 @@ pub(crate) trait WriteInstruction {
         &self,
         registry: &super::Registry,
         out: &mut Vec<Instruction>,
-    ) -> Result<(), String>;
+    ) -> Result<(), RuntimeError>;
 }
 
 impl WriteInstruction for Expr {
@@ -30,7 +32,7 @@ impl WriteInstruction for Expr {
         &self,
         registry: &super::Registry,
         out: &mut Vec<Instruction>,
-    ) -> Result<(), String> {
+    ) -> Result<(), RuntimeError> {
         match self {
             Expr::LitInt(v) => out.push(Instruction::PushLitInt(*v)),
             Expr::LitFloat(v) => out.push(Instruction::PushLitFloat(*v)),
@@ -41,10 +43,9 @@ impl WriteInstruction for Expr {
                     .enumerate()
                     .find(|(_, var)| &var.0 == ident);
 
-                let (ident, _) = var.expect(&format!(
-                    "undeclared variable {}",
-                    String::from_utf8_lossy(ident)
-                ));
+                let (ident, _) = var.ok_or_else(|| {
+                    RuntimeError::UndeclaredVariable(String::from_utf8_lossy(ident).to_string())
+                })?;
 
                 out.push(Instruction::PushVariable {
                     ident: ident as u32,
@@ -61,14 +62,14 @@ impl WriteInstruction for Expr {
                     .enumerate()
                     .find(|(_, func)| &func.0 == ident);
 
-                let (ident, _) = func.expect(&format!(
-                    "undeclared function {}",
-                    String::from_utf8_lossy(ident)
-                ));
+                let (ident, _) = func.ok_or_else(|| {
+                    RuntimeError::UndeclaredFunction(String::from_utf8_lossy(ident).to_string())
+                })?;
 
                 out.push(Instruction::Call {
                     ident: ident as u32,
-                    arg_count: u32::try_from(args.len()).expect("too many argument"),
+                    arg_count: u32::try_from(args.len())
+                        .map_err(|_| RuntimeError::TooManyArguments)?,
                 })
             }
             Expr::Add(a, b)

@@ -1,7 +1,8 @@
+mod error;
 mod expr;
 mod lexer;
 
-pub use self::expr::Expr;
+pub use self::{error::ParseError, expr::Expr};
 
 use self::lexer::{lex, LexValue, Token, TokenKind};
 
@@ -10,7 +11,7 @@ struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    fn parse_expr(&mut self, min_precedent: i32) -> Result<Expr, String> {
+    fn parse_expr(&mut self, min_precedent: i32) -> Result<Expr, ParseError> {
         let mut expr = self.parse_primary_expr()?;
         while let Some(tk) = self.peek() {
             let Some(precedent) = self.operator_precedent(tk.kind) else {
@@ -27,9 +28,9 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn parse_primary_expr(&mut self) -> Result<Expr, String> {
+    fn parse_primary_expr(&mut self) -> Result<Expr, ParseError> {
         let Some(tk) = self.peek() else {
-            return Err("Unexpected EOF".to_owned());
+            return Err(ParseError::UnexpectedEOF);
         };
 
         let expr = match tk.kind {
@@ -59,15 +60,15 @@ impl<'a> Parser<'a> {
                 let expr = self.parse_expr(0)?;
                 Expr::Not(Box::new(expr))
             }
-            _ => unreachable!(),
+            _ => return Err(ParseError::UnexpectedPrimaryExpr(tk.kind)),
         };
 
         Ok(expr)
     }
 
-    fn parse_secondary_expr(&mut self, lhs: Expr, min_precedent: i32) -> Result<Expr, String> {
+    fn parse_secondary_expr(&mut self, lhs: Expr, min_precedent: i32) -> Result<Expr, ParseError> {
         let Some(tk) = self.peek() else {
-            return Err("unexpected EOF".to_owned());
+            return Err(ParseError::UnexpectedEOF);
         };
 
         Ok(match tk.kind {
@@ -126,7 +127,7 @@ impl<'a> Parser<'a> {
                     self.consume(TokenKind::CloseParen)?;
                     Expr::Call(ident, args)
                 } else {
-                    return Err(format!("Cannot call {:?} as a function", lhs));
+                    return Err(ParseError::InvalidFunctionCall);
                 }
             }
             _ => unreachable!(),
@@ -151,22 +152,22 @@ impl<'a> Parser<'a> {
         self.tokens.get(0)
     }
 
-    fn consume(&mut self, kind: TokenKind) -> Result<(), String> {
+    fn consume(&mut self, kind: TokenKind) -> Result<(), ParseError> {
         if self.tokens.len() == 0 {
-            return Err(format!("Expected {kind:?} got EOF"));
+            return Err(ParseError::ExpectingButGotEOF(kind));
         }
 
         if self.tokens[0].kind != kind {
-            return Err(format!("Expected {kind:?} got {:?}", self.tokens[0].kind));
+            return Err(ParseError::Expecting(kind, self.tokens[0].kind));
         }
 
         self.tokens = &self.tokens[1..];
         Ok(())
     }
 
-    fn skip(&mut self) -> Result<(), String> {
+    fn skip(&mut self) -> Result<(), ParseError> {
         if self.tokens.len() == 0 {
-            return Err(format!("Unexpected EOF"));
+            return Err(ParseError::UnexpectedEOF);
         }
 
         self.tokens = &self.tokens[1..];
@@ -174,7 +175,9 @@ impl<'a> Parser<'a> {
     }
 }
 
-pub fn parse(source: &[u8]) -> Result<Expr, String> {
-    let tokens = lex(source)?;
-    Parser { tokens: &tokens }.parse_expr(0)
+impl Expr {
+    pub fn from_src(source: &[u8]) -> Result<Expr, ParseError> {
+        let tokens = lex(source)?;
+        Parser { tokens: &tokens }.parse_expr(0)
+    }
 }

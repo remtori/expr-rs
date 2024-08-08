@@ -1,3 +1,4 @@
+use super::ParseError;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind {
@@ -32,7 +33,7 @@ pub enum LexValue<'a> {
     Identifier(&'a [u8]),
 }
 
-pub fn lex<'a>(str: &'a [u8]) -> Result<Vec<Token<'a>>, String> {
+pub fn lex<'a>(str: &'a [u8]) -> Result<Vec<Token<'a>>, ParseError> {
     let mut tokens: Vec<Token<'a>> = Vec::new();
     let mut pos = 0;
     while pos < str.len() {
@@ -84,7 +85,9 @@ pub fn lex<'a>(str: &'a [u8]) -> Result<Vec<Token<'a>>, String> {
             _ if c.is_ascii_whitespace() => {
                 continue;
             }
-            _ => panic!(),
+            _ => {
+                return Err(ParseError::UnexpectedChar(c as char));
+            }
         };
 
         match kind {
@@ -95,15 +98,14 @@ pub fn lex<'a>(str: &'a [u8]) -> Result<Vec<Token<'a>>, String> {
                     tokens.push(Token {
                         kind,
                         value: LexValue::Float(
-                            str::parse(number)
-                                .expect(&format!("expect float value got '{number}'")),
+                            str::parse(number).map_err(ParseError::ParseFloatError)?,
                         ),
                     });
                 } else {
                     tokens.push(Token {
                         kind,
                         value: LexValue::Int(
-                            str::parse(number).expect(&format!("expect int value got '{number}'")),
+                            str::parse(number).map_err(ParseError::ParseIntError)?,
                         ),
                     });
                 }
