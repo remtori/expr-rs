@@ -34,9 +34,9 @@ impl WriteInstruction for Expr {
         out: &mut Vec<Instruction>,
     ) -> Result<(), RuntimeError> {
         match self {
-            Expr::LitInt(v) => out.push(Instruction::PushLitInt(*v)),
-            Expr::LitFloat(v) => out.push(Instruction::PushLitFloat(*v)),
-            Expr::Identifier(ident) => {
+            Expr::LitInt(v, _) => out.push(Instruction::PushLitInt(*v)),
+            Expr::LitFloat(v, _) => out.push(Instruction::PushLitFloat(*v)),
+            Expr::Identifier(ident, _) => {
                 let var = registry
                     .vars
                     .iter()
@@ -51,7 +51,7 @@ impl WriteInstruction for Expr {
                     ident: ident as u32,
                 });
             }
-            Expr::Call(ident, args) => {
+            Expr::Call(ident, args, _) => {
                 for arg in args {
                     arg.write_instruction(registry, out)?;
                 }
@@ -72,29 +72,29 @@ impl WriteInstruction for Expr {
                         .map_err(|_| RuntimeError::TooManyArguments)?,
                 })
             }
-            Expr::Add(a, b)
-            | Expr::Sub(a, b)
-            | Expr::Mul(a, b)
-            | Expr::Div(a, b)
-            | Expr::Mod(a, b)
-            | Expr::And(a, b)
-            | Expr::Or(a, b)
-            | Expr::Xor(a, b) => {
+            Expr::Add(a, b, _)
+            | Expr::Sub(a, b, _)
+            | Expr::Mul(a, b, _)
+            | Expr::Div(a, b, _)
+            | Expr::Mod(a, b, _)
+            | Expr::And(a, b, _)
+            | Expr::Or(a, b, _)
+            | Expr::Xor(a, b, _) => {
                 a.write_instruction(registry, out)?;
                 b.write_instruction(registry, out)?;
                 match self {
-                    Expr::Add(_, _) => out.push(Instruction::Add),
-                    Expr::Sub(_, _) => out.push(Instruction::Sub),
-                    Expr::Mul(_, _) => out.push(Instruction::Mul),
-                    Expr::Div(_, _) => out.push(Instruction::Div),
-                    Expr::Mod(_, _) => out.push(Instruction::Mod),
-                    Expr::And(_, _) => out.push(Instruction::And),
-                    Expr::Or(_, _) => out.push(Instruction::Or),
-                    Expr::Xor(_, _) => out.push(Instruction::Xor),
+                    Expr::Add(_, _, _) => out.push(Instruction::Add),
+                    Expr::Sub(_, _, _) => out.push(Instruction::Sub),
+                    Expr::Mul(_, _, _) => out.push(Instruction::Mul),
+                    Expr::Div(_, _, _) => out.push(Instruction::Div),
+                    Expr::Mod(_, _, _) => out.push(Instruction::Mod),
+                    Expr::And(_, _, _) => out.push(Instruction::And),
+                    Expr::Or(_, _, _) => out.push(Instruction::Or),
+                    Expr::Xor(_, _, _) => out.push(Instruction::Xor),
                     _ => unreachable!(),
                 }
             }
-            Expr::Not(expr) => {
+            Expr::Not(expr, _) => {
                 expr.write_instruction(registry, out)?;
                 out.push(Instruction::Not);
             }

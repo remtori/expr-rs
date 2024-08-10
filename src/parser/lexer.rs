@@ -1,4 +1,4 @@
-use super::ParseError;
+use super::{ParseError, Span};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind {
@@ -19,9 +19,32 @@ pub enum TokenKind {
     CloseParen,
 }
 
+impl TokenKind {
+    pub fn to_char(&self) -> &'static str {
+        match self {
+            TokenKind::Literal => "<literal>",
+            TokenKind::Identifier => "<ident>",
+            TokenKind::Plus => "+",
+            TokenKind::Minus => "-",
+            TokenKind::Asterisk => "*",
+            TokenKind::Slash => "/",
+            TokenKind::Percent => "%",
+            TokenKind::Comma => ",",
+            TokenKind::Period => ".",
+            TokenKind::Caret => "^",
+            TokenKind::Ampersand => "&",
+            TokenKind::Pipe => "|",
+            TokenKind::ExclamationMark => "!",
+            TokenKind::OpenParen => "(",
+            TokenKind::CloseParen => ")",
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Token<'a> {
     pub(crate) kind: TokenKind,
+    pub(crate) span: Span,
     pub(crate) value: LexValue<'a>,
 }
 
@@ -86,10 +109,20 @@ pub fn lex<'a>(str: &'a [u8]) -> Result<Vec<Token<'a>>, ParseError> {
                 continue;
             }
             _ => {
-                return Err(ParseError::UnexpectedChar(c as char));
+                return Err(ParseError::UnexpectedChar(
+                    c as char,
+                    Span {
+                        from: start_pos,
+                        to: pos - 1,
+                    },
+                ));
             }
         };
 
+        let span = Span {
+            from: start_pos,
+            to: pos - 1,
+        };
         match kind {
             TokenKind::Literal => {
                 let number = &str[start_pos..pos];
@@ -97,15 +130,19 @@ pub fn lex<'a>(str: &'a [u8]) -> Result<Vec<Token<'a>>, ParseError> {
                 if number.contains('.') {
                     tokens.push(Token {
                         kind,
+                        span,
                         value: LexValue::Float(
-                            str::parse(number).map_err(ParseError::ParseFloatError)?,
+                            str::parse(number)
+                                .map_err(|err| ParseError::ParseFloatError(err, span))?,
                         ),
                     });
                 } else {
                     tokens.push(Token {
                         kind,
+                        span,
                         value: LexValue::Int(
-                            str::parse(number).map_err(ParseError::ParseIntError)?,
+                            str::parse(number)
+                                .map_err(|err| ParseError::ParseIntError(err, span))?,
                         ),
                     });
                 }
@@ -113,12 +150,14 @@ pub fn lex<'a>(str: &'a [u8]) -> Result<Vec<Token<'a>>, ParseError> {
             TokenKind::Identifier => {
                 tokens.push(Token {
                     kind,
+                    span,
                     value: LexValue::Identifier(&str[start_pos..pos]),
                 });
             }
             _ => {
                 tokens.push(Token {
                     kind,
+                    span,
                     value: LexValue::None,
                 });
             }

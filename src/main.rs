@@ -1,3 +1,5 @@
+use core::str;
+
 use expr::{Expr, Program, Registry, Value};
 
 fn main() {
@@ -6,7 +8,31 @@ fn main() {
         fns: vec![(b"pow".to_vec(), builtin::pow)],
     };
 
-    let expr = Expr::from_src(b"1 + pow(2, 3) * 4").unwrap();
+    let src = b"pow(3 * 93 * 10000 * 749, 15)";
+    let expr = match Expr::from_src(src) {
+        Ok(expr) => expr,
+        Err(err) => {
+            println!("{}", str::from_utf8(src).unwrap());
+
+            let mut offset = 0;
+            if let Some(span) = err.span() {
+                offset = (span.from + span.to) / 2;
+                for i in 0..=span.to {
+                    if i < span.from {
+                        print!(" ");
+                    } else {
+                        print!("^");
+                    }
+                }
+
+                println!();
+            }
+
+            println!("{}{:#}", " ".repeat(offset), err);
+            return;
+        }
+    };
+
     let program = Program::compile(&registry, &expr).unwrap();
     println!("{:?}", program.run(&registry));
 }

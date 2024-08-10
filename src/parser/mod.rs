@@ -2,7 +2,10 @@ mod error;
 mod expr;
 mod lexer;
 
-pub use self::{error::ParseError, expr::Expr};
+pub use self::{
+    error::ParseError,
+    expr::{Expr, Span},
+};
 
 use self::lexer::{lex, LexValue, Token, TokenKind};
 
@@ -37,15 +40,15 @@ impl<'a> Parser<'a> {
             TokenKind::Literal => {
                 self.skip()?;
                 match tk.value {
-                    LexValue::Float(v) => Expr::LitFloat(v),
-                    LexValue::Int(v) => Expr::LitInt(v),
+                    LexValue::Float(v) => Expr::LitFloat(v, tk.span),
+                    LexValue::Int(v) => Expr::LitInt(v, tk.span),
                     _ => unreachable!(),
                 }
             }
             TokenKind::Identifier => {
                 self.skip()?;
                 match tk.value {
-                    LexValue::Identifier(ident) => Expr::Identifier(ident.to_vec()),
+                    LexValue::Identifier(ident) => Expr::Identifier(ident.to_vec(), tk.span),
                     _ => unreachable!(),
                 }
             }
@@ -58,9 +61,9 @@ impl<'a> Parser<'a> {
             TokenKind::ExclamationMark => {
                 self.skip()?;
                 let expr = self.parse_expr(0)?;
-                Expr::Not(Box::new(expr))
+                Expr::Not(Box::new(expr), tk.span)
             }
-            _ => return Err(ParseError::UnexpectedPrimaryExpr(tk.kind)),
+            _ => return Err(ParseError::UnexpectedPrimaryExpr(tk.kind, tk.span)),
         };
 
         Ok(expr)
@@ -74,38 +77,70 @@ impl<'a> Parser<'a> {
         Ok(match tk.kind {
             TokenKind::Plus => {
                 self.skip()?;
-                Expr::Add(Box::new(lhs), Box::new(self.parse_expr(min_precedent)?))
+                Expr::Add(
+                    Box::new(lhs),
+                    Box::new(self.parse_expr(min_precedent)?),
+                    tk.span,
+                )
             }
             TokenKind::Minus => {
                 self.skip()?;
-                Expr::Sub(Box::new(lhs), Box::new(self.parse_expr(min_precedent)?))
+                Expr::Sub(
+                    Box::new(lhs),
+                    Box::new(self.parse_expr(min_precedent)?),
+                    tk.span,
+                )
             }
             TokenKind::Asterisk => {
                 self.skip()?;
-                Expr::Mul(Box::new(lhs), Box::new(self.parse_expr(min_precedent)?))
+                Expr::Mul(
+                    Box::new(lhs),
+                    Box::new(self.parse_expr(min_precedent)?),
+                    tk.span,
+                )
             }
             TokenKind::Slash => {
                 self.skip()?;
-                Expr::Div(Box::new(lhs), Box::new(self.parse_expr(min_precedent)?))
+                Expr::Div(
+                    Box::new(lhs),
+                    Box::new(self.parse_expr(min_precedent)?),
+                    tk.span,
+                )
             }
             TokenKind::Percent => {
                 self.skip()?;
-                Expr::Mod(Box::new(lhs), Box::new(self.parse_expr(min_precedent)?))
+                Expr::Mod(
+                    Box::new(lhs),
+                    Box::new(self.parse_expr(min_precedent)?),
+                    tk.span,
+                )
             }
             TokenKind::Ampersand => {
                 self.skip()?;
-                Expr::And(Box::new(lhs), Box::new(self.parse_expr(min_precedent)?))
+                Expr::And(
+                    Box::new(lhs),
+                    Box::new(self.parse_expr(min_precedent)?),
+                    tk.span,
+                )
             }
             TokenKind::Pipe => {
                 self.skip()?;
-                Expr::Or(Box::new(lhs), Box::new(self.parse_expr(min_precedent)?))
+                Expr::Or(
+                    Box::new(lhs),
+                    Box::new(self.parse_expr(min_precedent)?),
+                    tk.span,
+                )
             }
             TokenKind::Caret => {
                 self.skip()?;
-                Expr::Xor(Box::new(lhs), Box::new(self.parse_expr(min_precedent)?))
+                Expr::Xor(
+                    Box::new(lhs),
+                    Box::new(self.parse_expr(min_precedent)?),
+                    tk.span,
+                )
             }
             TokenKind::OpenParen => {
-                if let Expr::Identifier(ident) = lhs {
+                if let Expr::Identifier(ident, span) = lhs {
                     self.skip()?;
                     let mut args = Vec::new();
                     while let Some(tk) = self.peek() {
@@ -125,9 +160,9 @@ impl<'a> Parser<'a> {
                     }
 
                     self.consume(TokenKind::CloseParen)?;
-                    Expr::Call(ident, args)
+                    Expr::Call(ident, args, span)
                 } else {
-                    return Err(ParseError::InvalidFunctionCall);
+                    return Err(ParseError::InvalidFunctionCall(lhs.span()));
                 }
             }
             _ => unreachable!(),
@@ -158,7 +193,11 @@ impl<'a> Parser<'a> {
         }
 
         if self.tokens[0].kind != kind {
-            return Err(ParseError::Expecting(kind, self.tokens[0].kind));
+            return Err(ParseError::Expecting(
+                kind,
+                self.tokens[0].kind,
+                self.tokens[0].span,
+            ));
         }
 
         self.tokens = &self.tokens[1..];
