@@ -29,7 +29,9 @@ fn main() {
             }
 
             println!("{}{:#}", " ".repeat(offset), err);
-            // println!("At\n{:?}", err.backtrace());
+
+            #[cfg(feature = "backtrace")]
+            println!("At\n{:?}", err.backtrace());
             return;
         }
     };

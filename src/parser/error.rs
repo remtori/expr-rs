@@ -1,5 +1,6 @@
 use std::{error::Error, fmt::Display};
 
+#[cfg(feature = "backtrace")]
 use backtrace::Backtrace;
 
 use super::{lexer::TokenKind, Span};
@@ -21,6 +22,7 @@ pub enum ParseErrorKind {
 pub struct ParseError {
     kind: ParseErrorKind,
     span: Option<Span>,
+    #[cfg(feature = "backtrace")]
     backtrace: Backtrace,
 }
 
@@ -29,6 +31,7 @@ impl ParseError {
         Self {
             kind,
             span: Some(span),
+            #[cfg(feature = "backtrace")]
             backtrace: Backtrace::new(),
         }
     }
@@ -37,6 +40,7 @@ impl ParseError {
         Self {
             kind,
             span: None,
+            #[cfg(feature = "backtrace")]
             backtrace: Backtrace::new(),
         }
     }
@@ -45,6 +49,7 @@ impl ParseError {
         self.span
     }
 
+    #[cfg(feature = "backtrace")]
     pub fn backtrace(&self) -> &Backtrace {
         &self.backtrace
     }
