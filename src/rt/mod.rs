@@ -4,7 +4,7 @@ mod error;
 mod ix;
 
 pub use error::RuntimeError;
-use ix::{Instruction, WriteInstruction};
+use ix::Instruction;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Value {
@@ -33,7 +33,7 @@ pub struct Program {
 impl Program {
     pub fn compile(registry: &Registry, expr: &Expr) -> Result<Program, RuntimeError> {
         let mut instructions = Vec::new();
-        expr.write_instruction(registry, &mut instructions)?;
+        ix::write_instruction(expr, registry, &mut instructions)?;
         Ok(Program { instructions })
     }
 
