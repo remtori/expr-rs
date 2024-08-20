@@ -1,11 +1,10 @@
 use crate::parser::Expr;
 
-use super::RuntimeError;
+use super::{RuntimeError, Value};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Instruction {
-    PushLitInt(i64),
-    PushLitFloat(f64),
+    PushLit(Value),
     PushVariable { ident: u32 },
     Call { ident: u32, arg_count: u32 },
     Add,
@@ -25,8 +24,8 @@ pub(crate) fn write_instruction(
     out: &mut Vec<Instruction>,
 ) -> Result<(), RuntimeError> {
     match expr {
-        Expr::LitInt(v, _) => out.push(Instruction::PushLitInt(*v)),
-        Expr::LitFloat(v, _) => out.push(Instruction::PushLitFloat(*v)),
+        Expr::LitInt(v, _) => out.push(Instruction::PushLit(Value::Int(*v))),
+        Expr::LitFloat(v, _) => out.push(Instruction::PushLit(Value::Float(*v))),
         Expr::Identifier(ident, _) => {
             let var = registry
                 .vars
