@@ -1,31 +1,51 @@
 use std::{error::Error, fmt::Display};
 
+use backtrace::Backtrace;
+
 use super::{lexer::TokenKind, Span};
 
 #[derive(Debug)]
-pub enum ParseError {
+pub enum ParseErrorKind {
     UnexpectedEOF,
     ExpectingButGotEOF(TokenKind),
-    UnexpectedChar(char, Span),
-    UnexpectedPrimaryExpr(TokenKind, Span),
-    Expecting(TokenKind, TokenKind, Span),
-    InvalidFunctionCall(Span),
-    ParseFloatError(std::num::ParseFloatError, Span),
-    ParseIntError(std::num::ParseIntError, Span),
+    UnexpectedChar(char),
+    UnexpectedPrimaryExpr(TokenKind),
+    Expecting(TokenKind, TokenKind),
+    InvalidFunctionCall,
+    ParseFloatError(std::num::ParseFloatError),
+    ParseIntError(std::num::ParseIntError),
+}
+
+#[derive(Debug)]
+pub struct ParseError {
+    kind: ParseErrorKind,
+    span: Option<Span>,
+    backtrace: Backtrace,
 }
 
 impl ParseError {
-    pub fn span(&self) -> Option<Span> {
-        match self {
-            ParseError::UnexpectedEOF => None,
-            ParseError::ExpectingButGotEOF(_) => None,
-            ParseError::UnexpectedChar(_, span) => Some(*span),
-            ParseError::UnexpectedPrimaryExpr(_, span) => Some(*span),
-            ParseError::Expecting(_, _, span) => Some(*span),
-            ParseError::InvalidFunctionCall(span) => Some(*span),
-            ParseError::ParseFloatError(_, span) => Some(*span),
-            ParseError::ParseIntError(_, span) => Some(*span),
+    pub fn new(kind: ParseErrorKind, span: Span) -> Self {
+        Self {
+            kind,
+            span: Some(span),
+            backtrace: Backtrace::new(),
         }
+    }
+
+    pub fn new_nospan(kind: ParseErrorKind) -> Self {
+        Self {
+            kind,
+            span: None,
+            backtrace: Backtrace::new(),
+        }
+    }
+
+    pub fn span(&self) -> Option<Span> {
+        self.span
+    }
+
+    pub fn backtrace(&self) -> &Backtrace {
+        &self.backtrace
     }
 }
 
@@ -33,26 +53,28 @@ impl Error for ParseError {}
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ParseError::UnexpectedEOF => write!(f, "Unexpected end of file"),
-            ParseError::ExpectingButGotEOF(tk) => {
+        match &self.kind {
+            ParseErrorKind::UnexpectedEOF => write!(f, "Unexpected end of file"),
+            ParseErrorKind::ExpectingButGotEOF(tk) => {
                 write!(f, "Expecting '{}' but reach end of file", tk.to_char())
             }
-            ParseError::UnexpectedChar(c, _) => {
+            ParseErrorKind::UnexpectedChar(c) => {
                 write!(f, "Unexpected character '{c}' appear in expression")
             }
-            ParseError::UnexpectedPrimaryExpr(tk, _) => {
+            ParseErrorKind::UnexpectedPrimaryExpr(tk) => {
                 write!(f, "Expecting an expression but got '{}'", tk.to_char())
             }
-            ParseError::Expecting(ex, got, _) => write!(
+            ParseErrorKind::Expecting(ex, got) => write!(
                 f,
                 "Expecting '{}' but got '{}'",
                 ex.to_char(),
                 got.to_char()
             ),
-            ParseError::InvalidFunctionCall(_) => write!(f, "This is not a valid function call"),
-            ParseError::ParseFloatError(err, _) => write!(f, "Parse float error: {err}"),
-            ParseError::ParseIntError(err, _) => write!(f, "Parse int error: {err}"),
+            ParseErrorKind::InvalidFunctionCall => {
+                write!(f, "This is not a valid function call")
+            }
+            ParseErrorKind::ParseFloatError(err) => write!(f, "Parse float error: {err}"),
+            ParseErrorKind::ParseIntError(err) => write!(f, "Parse int error: {err}"),
         }
     }
 }

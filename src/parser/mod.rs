@@ -2,8 +2,10 @@ mod error;
 mod expr;
 mod lexer;
 
+use error::ParseError;
+
 pub use self::{
-    error::ParseError,
+    error::ParseErrorKind,
     expr::{Expr, Span},
 };
 
@@ -33,7 +35,7 @@ impl<'a> Parser<'a> {
 
     fn parse_primary_expr(&mut self) -> Result<Expr, ParseError> {
         let Some(tk) = self.peek() else {
-            return Err(ParseError::UnexpectedEOF);
+            return Err(ParseError::new_nospan(ParseErrorKind::UnexpectedEOF));
         };
 
         let expr = match tk.kind {
@@ -63,7 +65,12 @@ impl<'a> Parser<'a> {
                 let expr = self.parse_expr(0)?;
                 Expr::Not(Box::new(expr), tk.span)
             }
-            _ => return Err(ParseError::UnexpectedPrimaryExpr(tk.kind, tk.span)),
+            _ => {
+                return Err(ParseError::new(
+                    ParseErrorKind::UnexpectedPrimaryExpr(tk.kind),
+                    tk.span,
+                ))
+            }
         };
 
         Ok(expr)
@@ -71,7 +78,7 @@ impl<'a> Parser<'a> {
 
     fn parse_secondary_expr(&mut self, lhs: Expr, min_precedent: i32) -> Result<Expr, ParseError> {
         let Some(tk) = self.peek() else {
-            return Err(ParseError::UnexpectedEOF);
+            return Err(ParseError::new_nospan(ParseErrorKind::UnexpectedEOF));
         };
 
         Ok(match tk.kind {
@@ -148,7 +155,7 @@ impl<'a> Parser<'a> {
                             break;
                         }
 
-                        args.push(self.parse_expr(min_precedent)?);
+                        args.push(self.parse_expr(0)?);
                         if let Some(tk) = self.peek() {
                             if tk.kind == TokenKind::Comma {
                                 self.skip()?;
@@ -162,10 +169,13 @@ impl<'a> Parser<'a> {
                     self.consume(TokenKind::CloseParen)?;
                     Expr::Call(ident, args, span)
                 } else {
-                    return Err(ParseError::InvalidFunctionCall(lhs.span()));
+                    return Err(ParseError::new(
+                        ParseErrorKind::InvalidFunctionCall,
+                        lhs.span(),
+                    ));
                 }
             }
-            _ => unreachable!(),
+            _ => unreachable!("{:?}", tk),
         })
     }
 
@@ -178,7 +188,6 @@ impl<'a> Parser<'a> {
             TokenKind::Ampersand => Some(7),
             TokenKind::Caret => Some(6),
             TokenKind::Pipe => Some(5),
-            TokenKind::Comma => Some(1),
             _ => None,
         }
     }
@@ -189,13 +198,14 @@ impl<'a> Parser<'a> {
 
     fn consume(&mut self, kind: TokenKind) -> Result<(), ParseError> {
         if self.tokens.len() == 0 {
-            return Err(ParseError::ExpectingButGotEOF(kind));
+            return Err(ParseError::new_nospan(ParseErrorKind::ExpectingButGotEOF(
+                kind,
+            )));
         }
 
         if self.tokens[0].kind != kind {
-            return Err(ParseError::Expecting(
-                kind,
-                self.tokens[0].kind,
+            return Err(ParseError::new(
+                ParseErrorKind::Expecting(kind, self.tokens[0].kind),
                 self.tokens[0].span,
             ));
         }
@@ -206,7 +216,7 @@ impl<'a> Parser<'a> {
 
     fn skip(&mut self) -> Result<(), ParseError> {
         if self.tokens.len() == 0 {
-            return Err(ParseError::UnexpectedEOF);
+            return Err(ParseError::new_nospan(ParseErrorKind::UnexpectedEOF));
         }
 
         self.tokens = &self.tokens[1..];

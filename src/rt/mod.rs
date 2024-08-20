@@ -45,7 +45,12 @@ impl Program {
                 Instruction::PushLitFloat(v) => stack.push(Value::Float(v)),
                 Instruction::PushVariable { ident } => stack.push(registry.vars[ident as usize].1),
                 Instruction::Call { ident, arg_count } => {
-                    debug_assert!((arg_count as usize) < stack.len());
+                    debug_assert!(
+                        (arg_count as usize) <= stack.len(),
+                        "{} > {}",
+                        arg_count,
+                        stack.len()
+                    );
 
                     let args = &stack[stack.len() - arg_count as usize..stack.len()];
                     let ret = registry.fns[ident as usize].1(args);

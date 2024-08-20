@@ -1,4 +1,4 @@
-use super::{ParseError, Span};
+use super::{error::ParseError, ParseErrorKind, Span};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind {
@@ -109,8 +109,8 @@ pub fn lex<'a>(str: &'a [u8]) -> Result<Vec<Token<'a>>, ParseError> {
                 continue;
             }
             _ => {
-                return Err(ParseError::UnexpectedChar(
-                    c as char,
+                return Err(ParseError::new(
+                    ParseErrorKind::UnexpectedChar(c as char),
                     Span {
                         from: start_pos,
                         to: pos - 1,
@@ -131,19 +131,17 @@ pub fn lex<'a>(str: &'a [u8]) -> Result<Vec<Token<'a>>, ParseError> {
                     tokens.push(Token {
                         kind,
                         span,
-                        value: LexValue::Float(
-                            str::parse(number)
-                                .map_err(|err| ParseError::ParseFloatError(err, span))?,
-                        ),
+                        value: LexValue::Float(str::parse(number).map_err(|err| {
+                            ParseError::new(ParseErrorKind::ParseFloatError(err), span)
+                        })?),
                     });
                 } else {
                     tokens.push(Token {
                         kind,
                         span,
-                        value: LexValue::Int(
-                            str::parse(number)
-                                .map_err(|err| ParseError::ParseIntError(err, span))?,
-                        ),
+                        value: LexValue::Int(str::parse(number).map_err(|err| {
+                            ParseError::new(ParseErrorKind::ParseIntError(err), span)
+                        })?),
                     });
                 }
             }

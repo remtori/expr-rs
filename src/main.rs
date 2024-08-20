@@ -8,7 +8,7 @@ fn main() {
         fns: vec![(b"pow".to_vec(), builtin::pow)],
     };
 
-    let src = b"pow(3 * 93 * 10000 * 749, 15)";
+    let src = b"pow(3 * 93 * 10000 * 749, 2)";
     let expr = match Expr::from_src(src) {
         Ok(expr) => expr,
         Err(err) => {
@@ -29,6 +29,7 @@ fn main() {
             }
 
             println!("{}{:#}", " ".repeat(offset), err);
+            println!("At\n{:?}", err.backtrace());
             return;
         }
     };
