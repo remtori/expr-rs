@@ -227,6 +227,16 @@ impl<'a> Parser<'a> {
 impl Expr {
     pub fn from_src(source: &[u8]) -> Result<Expr, ParseError> {
         let tokens = lex(source)?;
-        Parser { tokens: &tokens }.parse_expr(0)
+
+        let mut parser = Parser { tokens: &tokens };
+        let expr = parser.parse_expr(0)?;
+        if let Some(tk) = parser.tokens.get(0) {
+            return Err(ParseError::new(
+                ParseErrorKind::UnexpectedTokenAtEOF(tk.kind),
+                tk.span,
+            ));
+        }
+
+        Ok(expr)
     }
 }

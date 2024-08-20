@@ -10,6 +10,7 @@ pub enum ParseErrorKind {
     ExpectingButGotEOF(TokenKind),
     UnexpectedChar(char),
     UnexpectedPrimaryExpr(TokenKind),
+    UnexpectedTokenAtEOF(TokenKind),
     Expecting(TokenKind, TokenKind),
     InvalidFunctionCall,
     ParseFloatError(std::num::ParseFloatError),
@@ -63,6 +64,9 @@ impl Display for ParseError {
             }
             ParseErrorKind::UnexpectedPrimaryExpr(tk) => {
                 write!(f, "Expecting an expression but got '{}'", tk.to_char())
+            }
+            ParseErrorKind::UnexpectedTokenAtEOF(tk) => {
+                write!(f, "Expecting EOF but got '{}'", tk.to_char())
             }
             ParseErrorKind::Expecting(ex, got) => write!(
                 f,
