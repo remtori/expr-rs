@@ -15,7 +15,7 @@ impl Value {
     pub fn as_int(&self) -> i64 {
         match self {
             Value::Int(v) => *v,
-            Value::Float(v) => *v as i64,
+            Value::Float(v) => v.floor() as i64,
         }
     }
 }
