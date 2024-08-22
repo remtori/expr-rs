@@ -37,6 +37,7 @@ fn main() {
     };
 
     let program = Program::compile(&registry, &expr).unwrap();
+    println!("{:#?}", program);
     println!("{:?}", program.run(&registry));
 }
 

@@ -4,6 +4,7 @@ use super::{RuntimeError, Value};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Instruction {
+    Noop,
     PushLit(Value),
     PushVariable { ident: u32 },
     Call { ident: u32, arg_count: u32 },

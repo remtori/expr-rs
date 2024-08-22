@@ -2,9 +2,11 @@ use crate::parser::Expr;
 
 mod error;
 mod ix;
+mod opt_pass;
 mod value;
 
 use ix::Instruction;
+use opt_pass::run_optimize_pass;
 pub use {error::RuntimeError, value::Value};
 
 pub struct Registry {
@@ -12,6 +14,7 @@ pub struct Registry {
     pub fns: Vec<(Vec<u8>, fn(args: &[Value]) -> Value)>,
 }
 
+#[derive(Debug)]
 pub struct Program {
     instructions: Vec<ix::Instruction>,
 }
@@ -20,6 +23,8 @@ impl Program {
     pub fn compile(registry: &Registry, expr: &Expr) -> Result<Program, RuntimeError> {
         let mut instructions = Vec::new();
         ix::write_instruction(expr, registry, &mut instructions)?;
+
+        let instructions = run_optimize_pass(instructions);
         Ok(Program { instructions })
     }
 
@@ -27,6 +32,7 @@ impl Program {
         let mut stack = Vec::new();
         for ins in self.instructions.iter().copied() {
             match ins {
+                Instruction::Noop => {}
                 Instruction::PushLit(v) => stack.push(v),
                 Instruction::PushVariable { ident } => stack.push(registry.vars[ident as usize].1),
                 Instruction::Call { ident, arg_count } => {
