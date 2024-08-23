@@ -1,4 +1,5 @@
 use core::str;
+use std::backtrace::BacktraceStatus;
 
 use expr::{Expr, Program, Registry, Value};
 
@@ -29,9 +30,10 @@ fn main() {
             }
 
             println!("{}{:#}", " ".repeat(offset), err);
+            if err.backtrace().status() == BacktraceStatus::Captured {
+                println!("At\n{}", err.backtrace());
+            }
 
-            #[cfg(feature = "backtrace")]
-            println!("At\n{:?}", err.backtrace());
             return;
         }
     };

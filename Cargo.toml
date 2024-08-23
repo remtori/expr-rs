@@ -5,8 +5,3 @@ edition = "2021"
 
 [dependencies]
 thiserror = "1.0"
-backtrace = { version = "0.3", optional = true }
-
-[features]
-default = []
-backtrace = [ "dep:backtrace" ]
