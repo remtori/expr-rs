@@ -5,8 +5,7 @@ mod ix;
 mod opt_pass;
 mod value;
 
-use ix::Instruction;
-use opt_pass::run_optimize_pass;
+use self::{error::RuntimeErrorKind, ix::Instruction, opt_pass::run_optimize_pass};
 pub use {error::RuntimeError, value::Value};
 
 pub struct Registry {
@@ -28,7 +27,7 @@ impl Program {
         Ok(Program { instructions })
     }
 
-    pub fn run(&self, registry: &Registry) -> Value {
+    pub fn run(&self, registry: &Registry) -> Result<Value, RuntimeError> {
         let mut stack = Vec::new();
         for ins in self.instructions.iter().copied() {
             match ins {
@@ -36,17 +35,15 @@ impl Program {
                 Instruction::PushLit(v) => stack.push(v),
                 Instruction::PushVariable { ident } => stack.push(registry.vars[ident as usize].1),
                 Instruction::Call { ident, arg_count } => {
-                    debug_assert!(
-                        (arg_count as usize) <= stack.len(),
-                        "{} > {}",
-                        arg_count,
-                        stack.len()
-                    );
+                    let arg_count = arg_count as usize;
+                    if arg_count > stack.len() {
+                        return Err(RuntimeErrorKind::MalformedInstructionStream.into());
+                    }
 
-                    let args = &stack[stack.len() - arg_count as usize..stack.len()];
+                    let args = &stack[stack.len() - arg_count..];
                     let ret = registry.fns[ident as usize].1(args);
 
-                    stack.drain(stack.len() - arg_count as usize..stack.len());
+                    stack.drain(stack.len() - arg_count..);
                     stack.push(ret);
                 }
                 Instruction::Add
@@ -57,8 +54,13 @@ impl Program {
                 | Instruction::And
                 | Instruction::Or
                 | Instruction::Xor => {
-                    let b = stack.pop().unwrap();
-                    let a = stack.pop().unwrap();
+                    let b = stack
+                        .pop()
+                        .ok_or_else(|| RuntimeErrorKind::MalformedInstructionStream)?;
+                    let a = stack
+                        .pop()
+                        .ok_or_else(|| RuntimeErrorKind::MalformedInstructionStream)?;
+
                     let ret = match ins {
                         Instruction::Add => Value::do_add(a, b),
                         Instruction::Sub => Value::do_sub(a, b),
@@ -74,7 +76,10 @@ impl Program {
                     stack.push(ret);
                 }
                 Instruction::Not => {
-                    let v = stack.pop().unwrap();
+                    let v = stack
+                        .pop()
+                        .ok_or_else(|| RuntimeErrorKind::MalformedInstructionStream)?;
+
                     let ret = Value::do_neg(v);
                     stack.push(ret);
                 }
@@ -82,6 +87,8 @@ impl Program {
         }
 
         debug_assert!(stack.len() == 1);
-        stack.pop().unwrap()
+        stack
+            .pop()
+            .ok_or_else(|| RuntimeErrorKind::MalformedInstructionStream.into())
     }
 }

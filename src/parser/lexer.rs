@@ -1,4 +1,5 @@
-use super::{error::ParseError, ParseErrorKind, Span};
+use super::{error::ParseError, ParseErrorKind};
+use crate::Span;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind {

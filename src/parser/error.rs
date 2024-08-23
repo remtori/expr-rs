@@ -1,6 +1,6 @@
 use std::{backtrace::Backtrace, error::Error, fmt::Display};
 
-use super::{lexer::TokenKind, Span};
+use crate::{parser::lexer::TokenKind, Span};
 
 #[derive(Debug)]
 pub enum ParseErrorKind {

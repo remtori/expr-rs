@@ -1,6 +1,6 @@
 use crate::parser::Expr;
 
-use super::{RuntimeError, Value};
+use super::{RuntimeError, RuntimeErrorKind, Value};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Instruction {
@@ -33,7 +33,7 @@ pub(crate) fn write_instruction(
     match expr {
         Expr::LitInt(v, _) => out.push(Instruction::PushLit(Value::Int(*v))),
         Expr::LitFloat(v, _) => out.push(Instruction::PushLit(Value::Float(*v))),
-        Expr::Identifier(ident, _) => {
+        Expr::Identifier(ident, span) => {
             let var = registry
                 .vars
                 .iter()
@@ -41,14 +41,19 @@ pub(crate) fn write_instruction(
                 .find(|(_, var)| &var.0 == ident);
 
             let (ident, _) = var.ok_or_else(|| {
-                RuntimeError::UndeclaredVariable(String::from_utf8_lossy(ident).to_string())
+                RuntimeError::new(
+                    RuntimeErrorKind::UndeclaredVariable(
+                        String::from_utf8_lossy(ident).to_string(),
+                    ),
+                    *span,
+                )
             })?;
 
             out.push(Instruction::PushVariable {
                 ident: ident as u32,
             });
         }
-        Expr::Call(ident, args, _) => {
+        Expr::Call(ident, args, span) => {
             for arg in args {
                 write_instruction(arg, registry, out)?;
             }
@@ -60,12 +65,17 @@ pub(crate) fn write_instruction(
                 .find(|(_, func)| &func.0 == ident);
 
             let (ident, _) = func.ok_or_else(|| {
-                RuntimeError::UndeclaredFunction(String::from_utf8_lossy(ident).to_string())
+                RuntimeError::new(
+                    RuntimeErrorKind::UndeclaredFunction(
+                        String::from_utf8_lossy(ident).to_string(),
+                    ),
+                    *span,
+                )
             })?;
 
             out.push(Instruction::Call {
                 ident: ident as u32,
-                arg_count: u32::try_from(args.len()).map_err(|_| RuntimeError::TooManyArguments)?,
+                arg_count: u32::try_from(args.len()).unwrap(),
             })
         }
         Expr::Add(a, b, _)

@@ -4,10 +4,7 @@ mod lexer;
 
 use error::ParseError;
 
-pub use self::{
-    error::ParseErrorKind,
-    expr::{Expr, Span},
-};
+pub use self::{error::ParseErrorKind, expr::Expr};
 
 use self::lexer::{lex, LexValue, Token, TokenKind};
 

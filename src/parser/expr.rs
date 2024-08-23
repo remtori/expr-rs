@@ -1,8 +1,4 @@
-#[derive(Debug, Clone, Copy)]
-pub struct Span {
-    pub from: usize,
-    pub to: usize,
-}
+use crate::Span;
 
 #[derive(Debug)]
 pub enum Expr {
