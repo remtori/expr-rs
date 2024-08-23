@@ -4,10 +4,16 @@ use super::{RuntimeError, Value};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Instruction {
+    #[allow(dead_code)]
     Noop,
     PushLit(Value),
-    PushVariable { ident: u32 },
-    Call { ident: u32, arg_count: u32 },
+    PushVariable {
+        ident: u32,
+    },
+    Call {
+        ident: u32,
+        arg_count: u32,
+    },
     Add,
     Sub,
     Mul,
