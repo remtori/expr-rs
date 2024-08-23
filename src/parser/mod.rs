@@ -4,7 +4,10 @@ mod lexer;
 
 use error::ParseError;
 
-pub use self::{error::ParseErrorKind, expr::Expr};
+pub use self::{
+    error::ParseErrorKind,
+    expr::{BinaryOp, Expr, UnaryOp},
+};
 
 use self::lexer::{lex, LexValue, Token, TokenKind};
 
@@ -60,7 +63,12 @@ impl<'a> Parser<'a> {
             TokenKind::ExclamationMark => {
                 self.skip()?;
                 let expr = self.parse_expr(0)?;
-                Expr::Not(Box::new(expr), tk.span)
+                Expr::UnaryOp(UnaryOp::Not, Box::new(expr), tk.span)
+            }
+            TokenKind::Minus => {
+                self.skip()?;
+                let expr = self.parse_expr(0)?;
+                Expr::UnaryOp(UnaryOp::Neg, Box::new(expr), tk.span)
             }
             _ => {
                 return Err(ParseError::new(
@@ -81,64 +89,108 @@ impl<'a> Parser<'a> {
         Ok(match tk.kind {
             TokenKind::Plus => {
                 self.skip()?;
-                Expr::Add(
+                Expr::BinaryOp(
                     Box::new(lhs),
+                    BinaryOp::Add,
                     Box::new(self.parse_expr(min_precedent)?),
                     tk.span,
                 )
             }
             TokenKind::Minus => {
                 self.skip()?;
-                Expr::Sub(
+                Expr::BinaryOp(
                     Box::new(lhs),
+                    BinaryOp::Sub,
                     Box::new(self.parse_expr(min_precedent)?),
                     tk.span,
                 )
             }
             TokenKind::Asterisk => {
                 self.skip()?;
-                Expr::Mul(
+                Expr::BinaryOp(
                     Box::new(lhs),
+                    BinaryOp::Mul,
                     Box::new(self.parse_expr(min_precedent)?),
                     tk.span,
                 )
             }
             TokenKind::Slash => {
                 self.skip()?;
-                Expr::Div(
+                Expr::BinaryOp(
                     Box::new(lhs),
+                    BinaryOp::Div,
                     Box::new(self.parse_expr(min_precedent)?),
                     tk.span,
                 )
             }
             TokenKind::Percent => {
                 self.skip()?;
-                Expr::Mod(
+                Expr::BinaryOp(
                     Box::new(lhs),
+                    BinaryOp::Mod,
                     Box::new(self.parse_expr(min_precedent)?),
                     tk.span,
                 )
             }
             TokenKind::Ampersand => {
                 self.skip()?;
-                Expr::And(
+                Expr::BinaryOp(
                     Box::new(lhs),
+                    BinaryOp::BitAnd,
                     Box::new(self.parse_expr(min_precedent)?),
                     tk.span,
                 )
             }
             TokenKind::Pipe => {
                 self.skip()?;
-                Expr::Or(
+                Expr::BinaryOp(
                     Box::new(lhs),
+                    BinaryOp::BitOr,
                     Box::new(self.parse_expr(min_precedent)?),
                     tk.span,
                 )
             }
             TokenKind::Caret => {
                 self.skip()?;
-                Expr::Xor(
+                Expr::BinaryOp(
                     Box::new(lhs),
+                    BinaryOp::BitXor,
+                    Box::new(self.parse_expr(min_precedent)?),
+                    tk.span,
+                )
+            }
+            TokenKind::AmpersandAmpersand => {
+                self.skip()?;
+                Expr::BinaryOp(
+                    Box::new(lhs),
+                    BinaryOp::LogicalAnd,
+                    Box::new(self.parse_expr(min_precedent)?),
+                    tk.span,
+                )
+            }
+            TokenKind::PipePipe => {
+                self.skip()?;
+                Expr::BinaryOp(
+                    Box::new(lhs),
+                    BinaryOp::LogicalOr,
+                    Box::new(self.parse_expr(min_precedent)?),
+                    tk.span,
+                )
+            }
+            TokenKind::EqualEqual => {
+                self.skip()?;
+                Expr::BinaryOp(
+                    Box::new(lhs),
+                    BinaryOp::Equal,
+                    Box::new(self.parse_expr(min_precedent)?),
+                    tk.span,
+                )
+            }
+            TokenKind::ExclamationEqual => {
+                self.skip()?;
+                Expr::BinaryOp(
+                    Box::new(lhs),
+                    BinaryOp::NotEqual,
                     Box::new(self.parse_expr(min_precedent)?),
                     tk.span,
                 )

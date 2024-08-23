@@ -1,7 +1,9 @@
-use core::str;
-use std::backtrace::BacktraceStatus;
+use std::{
+    backtrace::{Backtrace, BacktraceStatus},
+    error::Error,
+};
 
-use expr::{Expr, Program, Registry, Value};
+use expr::{Expr, Program, Registry, Span, Value};
 
 fn main() {
     let registry = Registry {
@@ -9,38 +11,53 @@ fn main() {
         fns: vec![(b"pow".to_vec(), builtin::pow)],
     };
 
-    let src = b"pow(3 * 93 * 10000 * 749, 2)";
-    let expr = match Expr::from_src(src) {
+    let src = std::env::args()
+        .skip(1)
+        .next()
+        .unwrap_or("pow(3 * 93 * 10000 * 749, 2)".to_string());
+
+    let expr = match Expr::from_src(src.as_bytes()) {
         Ok(expr) => expr,
         Err(err) => {
-            println!("{}", str::from_utf8(src).unwrap());
-
-            let mut offset = 0;
-            if let Some(span) = err.span() {
-                offset = (span.from + span.to) / 2;
-                for i in 0..=span.to {
-                    if i < span.from {
-                        print!(" ");
-                    } else {
-                        print!("^");
-                    }
-                }
-
-                println!();
-            }
-
-            println!("{}{:#}", " ".repeat(offset), err);
-            if err.backtrace().status() == BacktraceStatus::Captured {
-                println!("At\n{}", err.backtrace());
-            }
-
+            println!("{src}");
+            print_span(&err, err.span(), Some(err.backtrace()));
             return;
         }
     };
 
-    let program = Program::compile(&registry, &expr).unwrap();
+    let program = match Program::compile(&registry, &expr) {
+        Ok(p) => p,
+        Err(err) => {
+            println!("{src}");
+            print_span(&err, err.span(), None);
+            return;
+        }
+    };
     println!("{:#?}", program);
     println!("{:?}", program.run(&registry));
+}
+
+fn print_span(err: impl Error, span: Option<Span>, backtrace: Option<&Backtrace>) {
+    let mut offset = 0;
+    if let Some(span) = span {
+        offset = (span.from + span.to) / 2;
+        for i in 0..=span.to {
+            if i < span.from {
+                print!(" ");
+            } else {
+                print!("^");
+            }
+        }
+
+        println!();
+    }
+
+    println!("{}{:#}", " ".repeat(offset), err);
+    if let Some(backtrace) = backtrace {
+        if backtrace.status() == BacktraceStatus::Captured {
+            println!("At\n{}", backtrace);
+        }
+    }
 }
 
 mod builtin {

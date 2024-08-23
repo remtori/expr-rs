@@ -14,7 +14,11 @@ pub enum TokenKind {
     Period,
     Caret,
     Ampersand,
+    AmpersandAmpersand,
     Pipe,
+    PipePipe,
+    EqualEqual,
+    ExclamationEqual,
     ExclamationMark,
     OpenParen,
     CloseParen,
@@ -34,7 +38,11 @@ impl TokenKind {
             TokenKind::Period => ".",
             TokenKind::Caret => "^",
             TokenKind::Ampersand => "&",
+            TokenKind::AmpersandAmpersand => "&&",
             TokenKind::Pipe => "|",
+            TokenKind::PipePipe => "||",
+            TokenKind::EqualEqual => "==",
+            TokenKind::ExclamationEqual => "!=",
             TokenKind::ExclamationMark => "!",
             TokenKind::OpenParen => "(",
             TokenKind::CloseParen => ")",
@@ -98,14 +106,48 @@ pub fn lex<'a>(str: &'a [u8]) -> Result<Vec<Token<'a>>, ParseError> {
             b'*' => TokenKind::Asterisk,
             b'/' => TokenKind::Slash,
             b'%' => TokenKind::Percent,
-            b'&' => TokenKind::Ampersand,
-            b'|' => TokenKind::Pipe,
             b'^' => TokenKind::Caret,
-            b'!' => TokenKind::ExclamationMark,
             b'.' => TokenKind::Period,
             b',' => TokenKind::Comma,
             b'(' => TokenKind::OpenParen,
             b')' => TokenKind::CloseParen,
+            b'=' => {
+                if pos < str.len() && str[pos] == b'=' {
+                    pos += 1;
+                    TokenKind::EqualEqual
+                } else {
+                    return Err(ParseError::new(
+                        ParseErrorKind::UnexpectedChar(c as char),
+                        Span {
+                            from: start_pos,
+                            to: pos - 1,
+                        },
+                    ));
+                }
+            }
+            b'!' => {
+                if pos < str.len() && str[pos] == b'=' {
+                    pos += 1;
+                    TokenKind::ExclamationEqual
+                } else {
+                    TokenKind::ExclamationMark
+                }
+            }
+            b'&' => {
+                if pos < str.len() && str[pos] == b'&' {
+                    pos += 1;
+                    TokenKind::AmpersandAmpersand
+                } else {
+                    TokenKind::Ampersand
+                }
+            }
+            b'|' => {
+                if pos < str.len() && str[pos] == b'|' {
+                    TokenKind::PipePipe
+                } else {
+                    TokenKind::Pipe
+                }
+            }
             _ if c.is_ascii_whitespace() => {
                 continue;
             }

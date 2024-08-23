@@ -1,4 +1,4 @@
-use crate::parser::Expr;
+use crate::parser::{Expr, UnaryOp};
 
 mod error;
 mod ix;
@@ -46,14 +46,7 @@ impl Program {
                     stack.drain(stack.len() - arg_count..);
                     stack.push(ret);
                 }
-                Instruction::Add
-                | Instruction::Sub
-                | Instruction::Mul
-                | Instruction::Div
-                | Instruction::Mod
-                | Instruction::And
-                | Instruction::Or
-                | Instruction::Xor => {
+                Instruction::BinaryOp(op) => {
                     let b = stack
                         .pop()
                         .ok_or_else(|| RuntimeErrorKind::MalformedInstructionStream)?;
@@ -61,26 +54,17 @@ impl Program {
                         .pop()
                         .ok_or_else(|| RuntimeErrorKind::MalformedInstructionStream)?;
 
-                    let ret = match ins {
-                        Instruction::Add => Value::do_add(a, b),
-                        Instruction::Sub => Value::do_sub(a, b),
-                        Instruction::Mul => Value::do_mul(a, b),
-                        Instruction::Div => Value::do_div(a, b),
-                        Instruction::Mod => Value::do_mod(a, b),
-                        Instruction::And => Value::do_and(a, b),
-                        Instruction::Or => Value::do_or(a, b),
-                        Instruction::Xor => Value::do_xor(a, b),
-                        _ => unreachable!(),
-                    };
-
-                    stack.push(ret);
+                    stack.push(Value::do_binary_op(a, b, op));
                 }
-                Instruction::Not => {
+                Instruction::UnaryOp(op) => {
                     let v = stack
                         .pop()
                         .ok_or_else(|| RuntimeErrorKind::MalformedInstructionStream)?;
 
-                    let ret = Value::do_neg(v);
+                    let ret = match op {
+                        UnaryOp::Neg => v.neg(),
+                        UnaryOp::Not => v.not(),
+                    };
                     stack.push(ret);
                 }
             }

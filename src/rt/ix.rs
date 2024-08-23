@@ -1,4 +1,4 @@
-use crate::parser::Expr;
+use crate::parser::{BinaryOp, Expr, UnaryOp};
 
 use super::{RuntimeError, RuntimeErrorKind, Value};
 
@@ -14,15 +14,8 @@ pub enum Instruction {
         ident: u32,
         arg_count: u32,
     },
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-    And,
-    Or,
-    Xor,
-    Not,
+    BinaryOp(BinaryOp),
+    UnaryOp(UnaryOp),
 }
 
 pub(crate) fn write_instruction(
@@ -78,31 +71,14 @@ pub(crate) fn write_instruction(
                 arg_count: u32::try_from(args.len()).unwrap(),
             })
         }
-        Expr::Add(a, b, _)
-        | Expr::Sub(a, b, _)
-        | Expr::Mul(a, b, _)
-        | Expr::Div(a, b, _)
-        | Expr::Mod(a, b, _)
-        | Expr::And(a, b, _)
-        | Expr::Or(a, b, _)
-        | Expr::Xor(a, b, _) => {
+        Expr::BinaryOp(a, op, b, _) => {
             write_instruction(a, registry, out)?;
             write_instruction(b, registry, out)?;
-            match expr {
-                Expr::Add(_, _, _) => out.push(Instruction::Add),
-                Expr::Sub(_, _, _) => out.push(Instruction::Sub),
-                Expr::Mul(_, _, _) => out.push(Instruction::Mul),
-                Expr::Div(_, _, _) => out.push(Instruction::Div),
-                Expr::Mod(_, _, _) => out.push(Instruction::Mod),
-                Expr::And(_, _, _) => out.push(Instruction::And),
-                Expr::Or(_, _, _) => out.push(Instruction::Or),
-                Expr::Xor(_, _, _) => out.push(Instruction::Xor),
-                _ => unreachable!(),
-            }
+            out.push(Instruction::BinaryOp(*op));
         }
-        Expr::Not(expr, _) => {
+        Expr::UnaryOp(op, expr, _) => {
             write_instruction(expr, registry, out)?;
-            out.push(Instruction::Not);
+            out.push(Instruction::UnaryOp(*op));
         }
     };
 
