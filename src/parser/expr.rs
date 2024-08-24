@@ -1,4 +1,4 @@
-use crate::Span;
+use crate::{Span, Value};
 
 #[derive(Debug, Clone, Copy)]
 pub enum BinaryOp {
@@ -24,8 +24,7 @@ pub enum UnaryOp {
 
 #[derive(Debug)]
 pub enum Expr {
-    LitInt(i64, Span),
-    LitFloat(f64, Span),
+    Literal(Value, Span),
     Identifier(Vec<u8>, Span),
     BinaryOp(Box<Expr>, BinaryOp, Box<Expr>, Span),
     UnaryOp(UnaryOp, Box<Expr>, Span),
@@ -35,8 +34,7 @@ pub enum Expr {
 impl Expr {
     pub fn span(&self) -> Span {
         match self {
-            Expr::LitInt(_, s) => *s,
-            Expr::LitFloat(_, s) => *s,
+            Expr::Literal(_, s) => *s,
             Expr::Identifier(_, s) => *s,
             Expr::BinaryOp(_, _, _, s) => *s,
             Expr::UnaryOp(_, _, s) => *s,

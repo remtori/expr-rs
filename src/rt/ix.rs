@@ -24,8 +24,7 @@ pub(crate) fn write_instruction(
     out: &mut Vec<Instruction>,
 ) -> Result<(), RuntimeError> {
     match expr {
-        Expr::LitInt(v, _) => out.push(Instruction::PushLit(Value::Int(*v))),
-        Expr::LitFloat(v, _) => out.push(Instruction::PushLit(Value::Float(*v))),
+        Expr::Literal(v, _) => out.push(Instruction::PushLit(*v)),
         Expr::Identifier(ident, span) => {
             let var = registry
                 .vars

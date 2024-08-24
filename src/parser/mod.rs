@@ -42,15 +42,19 @@ impl<'a> Parser<'a> {
             TokenKind::Literal => {
                 self.skip()?;
                 match tk.value {
-                    LexValue::Float(v) => Expr::LitFloat(v, tk.span),
-                    LexValue::Int(v) => Expr::LitInt(v, tk.span),
+                    LexValue::Float(v) => Expr::Literal(v.into(), tk.span),
+                    LexValue::Int(v) => Expr::Literal(v.into(), tk.span),
                     _ => unreachable!(),
                 }
             }
             TokenKind::Identifier => {
                 self.skip()?;
                 match tk.value {
-                    LexValue::Identifier(ident) => Expr::Identifier(ident.to_vec(), tk.span),
+                    LexValue::Identifier(ident) => match ident {
+                        b"true" => Expr::Literal(true.into(), tk.span),
+                        b"false" => Expr::Literal(false.into(), tk.span),
+                        ident => Expr::Identifier(ident.to_vec(), tk.span),
+                    },
                     _ => unreachable!(),
                 }
             }
