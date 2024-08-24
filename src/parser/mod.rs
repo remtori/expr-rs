@@ -38,6 +38,7 @@ impl<'a> Parser<'a> {
             return Err(ParseError::new_nospan(ParseErrorKind::UnexpectedEOF));
         };
 
+        let precedent = self.operator_precedent(tk.kind).unwrap_or(0);
         let expr = match tk.kind {
             TokenKind::Literal => {
                 self.skip()?;
@@ -60,18 +61,18 @@ impl<'a> Parser<'a> {
             }
             TokenKind::OpenParen => {
                 self.skip()?;
-                let expr = self.parse_expr(0)?;
+                let expr = self.parse_expr(precedent)?;
                 self.consume(TokenKind::CloseParen)?;
                 expr
             }
             TokenKind::ExclamationMark => {
                 self.skip()?;
-                let expr = self.parse_expr(0)?;
+                let expr = self.parse_expr(precedent)?;
                 Expr::UnaryOp(UnaryOp::Not, Box::new(expr), tk.span)
             }
             TokenKind::Minus => {
                 self.skip()?;
-                let expr = self.parse_expr(0)?;
+                let expr = self.parse_expr(precedent)?;
                 Expr::UnaryOp(UnaryOp::Neg, Box::new(expr), tk.span)
             }
             _ => {

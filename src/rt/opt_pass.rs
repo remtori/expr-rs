@@ -3,17 +3,17 @@ use crate::parser::UnaryOp;
 use super::{ix::Instruction, Value};
 
 pub(crate) fn run_optimize_pass(mut ix_stream: Vec<Instruction>) -> Vec<Instruction> {
-    // for _ in 0..3 {
-    //     constant_folding(&mut ix_stream);
-    //     ix_stream.retain(|ix| !matches!(ix, Instruction::Noop));
-    // }
+    for _ in 0..3 {
+        constant_folding(&mut ix_stream);
+        ix_stream.retain(|ix| !matches!(ix, Instruction::Noop));
+    }
 
     ix_stream
 }
 
 fn constant_folding(ix_stream: &mut Vec<Instruction>) {
     for i in 0..ix_stream.len() {
-        if i + 3 < ix_stream.len() {
+        if i + 3 <= ix_stream.len() {
             match &ix_stream[i..i + 3] {
                 [Instruction::PushLit(a), Instruction::PushLit(b), op] => {
                     let a = *a;
@@ -30,7 +30,7 @@ fn constant_folding(ix_stream: &mut Vec<Instruction>) {
             }
         }
 
-        if i + 2 < ix_stream.len() {
+        if i + 2 <= ix_stream.len() {
             match &ix_stream[i..i + 2] {
                 [Instruction::PushLit(lit), Instruction::UnaryOp(op)] => {
                     let ret = match op {
