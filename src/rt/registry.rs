@@ -2,15 +2,29 @@ use std::borrow::Cow;
 
 use super::{AnyExternalFunction, IntoExtFunc, Value};
 
-#[derive(Default)]
+mod builtin;
+
 pub struct Registry {
     vars: Vec<(Cow<'static, [u8]>, Value)>,
     fns: Vec<(Cow<'static, [u8]>, Box<dyn AnyExternalFunction>)>,
 }
 
+impl Default for Registry {
+    fn default() -> Self {
+        let mut registry = Self::empty();
+        registry.add_fn(b"pow", builtin::pow);
+        registry.add_fn(b"sin", builtin::sin);
+
+        registry
+    }
+}
+
 impl Registry {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn empty() -> Self {
+        Self {
+            vars: Vec::new(),
+            fns: Vec::new(),
+        }
     }
 
     pub fn add_var(

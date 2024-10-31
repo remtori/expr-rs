@@ -156,3 +156,13 @@ impl From<f64> for Value {
         Value::Float(value)
     }
 }
+
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Int(v) => write!(f, "{}", v),
+            Value::Float(v) => write!(f, "{}", v),
+            Value::Boolean(v) => write!(f, "{}", v),
+        }
+    }
+}

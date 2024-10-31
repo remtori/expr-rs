@@ -2,10 +2,8 @@ mod error;
 mod expr;
 mod lexer;
 
-use error::ParseError;
-
 pub use self::{
-    error::ParseErrorKind,
+    error::{ParseError, ParseErrorKind},
     expr::{BinaryOp, Expr, UnaryOp},
 };
 
