@@ -54,14 +54,17 @@ pub(crate) fn write_instruction(
             })?;
 
             let supplied_arg_count = u32::try_from(args.len()).unwrap();
-            if supplied_arg_count != arg_count {
+            if arg_count != u32::MAX && supplied_arg_count != arg_count {
                 return Err(RuntimeError::new(
                     RuntimeErrorKind::WrongArgumentCount(arg_count, supplied_arg_count),
                     *span,
                 ));
             }
 
-            out.push(Instruction::Call { ident, arg_count })
+            out.push(Instruction::Call {
+                ident,
+                arg_count: supplied_arg_count,
+            })
         }
         Expr::BinaryOp(a, op, b, _) => {
             write_instruction(a, registry, out)?;

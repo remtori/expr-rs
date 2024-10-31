@@ -12,8 +12,30 @@ pub struct Registry {
 impl Default for Registry {
     fn default() -> Self {
         let mut registry = Self::empty();
-        registry.add_fn(b"pow", builtin::pow);
-        registry.add_fn(b"sin", builtin::sin);
+        registry
+            .add_var(b"PI", std::f64::consts::PI)
+            .add_fn(b"pow", builtin::pow)
+            .add_fn(b"sin", builtin::sin)
+            .add_fn(b"cos", builtin::cos)
+            .add_fn(b"tan", builtin::tan)
+            .add_fn(b"asin", builtin::asin)
+            .add_fn(b"acos", builtin::acos)
+            .add_fn(b"atan", builtin::atan)
+            .add_fn(b"sinh", builtin::sinh)
+            .add_fn(b"cosh", builtin::cosh)
+            .add_fn(b"tanh", builtin::tanh)
+            .add_fn(b"asinh", builtin::asinh)
+            .add_fn(b"acosh", builtin::acosh)
+            .add_fn(b"atanh", builtin::atanh)
+            .add_fn(b"exp", builtin::exp)
+            .add_fn(b"ln", builtin::ln)
+            .add_fn(b"log10", builtin::log10)
+            .add_fn(b"log2", builtin::log2)
+            .add_fn(b"sqrt", builtin::sqrt)
+            .add_fn(b"cbrt", builtin::cbrt)
+            .add_fn(b"max", builtin::max)
+            .add_fn(b"min", builtin::min)
+            .add_fn(b"sum", builtin::sum);
 
         registry
     }
