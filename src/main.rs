@@ -1,8 +1,16 @@
+use std::path::Path;
+
 fn main() {
     let src = std::env::args()
         .skip(1)
-        .next()
-        .unwrap_or("pow(3 * 93 * 10000 *z 749, 2)".to_string());
+        .fold(String::new(), |src, arg| format!("{src} {arg}"));
+
+    if src.is_empty() {
+        let bin_name = std::env::args().next().unwrap();
+        let bin_name = Path::new(&bin_name).file_name().unwrap().to_str().unwrap();
+        println!("Usage: {bin_name} <expression>");
+        return;
+    }
 
     match expr::eval(&src) {
         Ok(v) => println!("{v}"),
