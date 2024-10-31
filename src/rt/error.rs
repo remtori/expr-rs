@@ -6,7 +6,7 @@ use crate::Span;
 pub enum RuntimeErrorKind {
     UndeclaredVariable(String),
     UndeclaredFunction(String),
-    WrongArgumentCount(usize, usize),
+    WrongArgumentCount(u32, u32),
     MalformedInstructionStream,
 }
 

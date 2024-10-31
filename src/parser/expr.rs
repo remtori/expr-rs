@@ -25,10 +25,10 @@ pub enum UnaryOp {
 #[derive(Debug)]
 pub enum Expr {
     Literal(Value, Span),
-    Identifier(Vec<u8>, Span),
+    Identifier(Box<[u8]>, Span),
     BinaryOp(Box<Expr>, BinaryOp, Box<Expr>, Span),
     UnaryOp(UnaryOp, Box<Expr>, Span),
-    Call(Vec<u8>, Vec<Expr>, Span),
+    Call(Box<[u8]>, Vec<Expr>, Span),
 }
 
 impl Expr {

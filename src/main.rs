@@ -3,13 +3,11 @@ use std::{
     error::Error,
 };
 
-use expr::{Expr, Program, Registry, Span, Value};
+use expr::{Expr, Program, Registry, Span};
 
 fn main() {
-    let registry = Registry {
-        vars: vec![(b"z".to_vec(), Value::Int(99))],
-        fns: vec![(b"pow".to_vec(), builtin::pow)],
-    };
+    let mut registry = Registry::new();
+    registry.add_var(b"z", 99).add_fn(b"pow", builtin::pow);
 
     let src = std::env::args()
         .skip(1)
@@ -34,7 +32,7 @@ fn main() {
         }
     };
     println!("{:#?}", program);
-    println!("{:?}", program.run(&registry));
+    println!("{:?}", program.run(&mut registry));
 }
 
 fn print_span(err: impl Error, span: Option<Span>, backtrace: Option<&Backtrace>) {
@@ -63,8 +61,8 @@ fn print_span(err: impl Error, span: Option<Span>, backtrace: Option<&Backtrace>
 mod builtin {
     use expr::Value;
 
-    pub fn pow(args: &[Value]) -> Value {
-        match (args[0], args[1]) {
+    pub fn pow(a: Value, b: Value) -> Value {
+        match (a, b) {
             (Value::Int(a), Value::Int(b)) => Value::Int(a.pow(b as u32)),
             _ => todo!(),
         }

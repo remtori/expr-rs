@@ -26,13 +26,8 @@ pub(crate) fn write_instruction(
     match expr {
         Expr::Literal(v, _) => out.push(Instruction::PushLit(*v)),
         Expr::Identifier(ident, span) => {
-            let var = registry
-                .vars
-                .iter()
-                .enumerate()
-                .find(|(_, var)| &var.0 == ident);
-
-            let (ident, _) = var.ok_or_else(|| {
+            let var = registry.var_ident(ident);
+            let ident = var.ok_or_else(|| {
                 RuntimeError::new(
                     RuntimeErrorKind::UndeclaredVariable(
                         String::from_utf8_lossy(ident).to_string(),
@@ -41,22 +36,15 @@ pub(crate) fn write_instruction(
                 )
             })?;
 
-            out.push(Instruction::PushVariable {
-                ident: ident as u32,
-            });
+            out.push(Instruction::PushVariable { ident });
         }
         Expr::Call(ident, args, span) => {
             for arg in args {
                 write_instruction(arg, registry, out)?;
             }
 
-            let func = registry
-                .fns
-                .iter()
-                .enumerate()
-                .find(|(_, func)| &func.0 == ident);
-
-            let (ident, _) = func.ok_or_else(|| {
+            let func = registry.fn_ident(ident);
+            let (ident, arg_count) = func.ok_or_else(|| {
                 RuntimeError::new(
                     RuntimeErrorKind::UndeclaredFunction(
                         String::from_utf8_lossy(ident).to_string(),
@@ -65,10 +53,15 @@ pub(crate) fn write_instruction(
                 )
             })?;
 
-            out.push(Instruction::Call {
-                ident: ident as u32,
-                arg_count: u32::try_from(args.len()).unwrap(),
-            })
+            let supplied_arg_count = u32::try_from(args.len()).unwrap();
+            if supplied_arg_count != arg_count {
+                return Err(RuntimeError::new(
+                    RuntimeErrorKind::WrongArgumentCount(arg_count, supplied_arg_count),
+                    *span,
+                ));
+            }
+
+            out.push(Instruction::Call { ident, arg_count })
         }
         Expr::BinaryOp(a, op, b, _) => {
             write_instruction(a, registry, out)?;

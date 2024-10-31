@@ -54,7 +54,7 @@ impl<'a> Parser<'a> {
                     LexValue::Identifier(ident) => match ident {
                         b"true" => Expr::Literal(true.into(), tk.span),
                         b"false" => Expr::Literal(false.into(), tk.span),
-                        ident => Expr::Identifier(ident.to_vec(), tk.span),
+                        ident => Expr::Identifier(Box::from(ident), tk.span),
                     },
                     _ => unreachable!(),
                 }

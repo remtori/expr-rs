@@ -1,17 +1,19 @@
 use crate::parser::{Expr, UnaryOp};
 
 mod error;
+mod func;
 mod ix;
 mod opt_pass;
+mod registry;
 mod value;
 
 use self::{error::RuntimeErrorKind, ix::Instruction, opt_pass::run_optimize_pass};
-pub use {error::RuntimeError, value::Value};
-
-pub struct Registry {
-    pub vars: Vec<(Vec<u8>, Value)>,
-    pub fns: Vec<(Vec<u8>, fn(args: &[Value]) -> Value)>,
-}
+pub use {
+    error::RuntimeError,
+    func::{AnyExternalFunction, IntoExtFunc},
+    registry::Registry,
+    value::Value,
+};
 
 #[derive(Debug)]
 pub struct Program {
@@ -27,13 +29,13 @@ impl Program {
         Ok(Program { instructions })
     }
 
-    pub fn run(&self, registry: &Registry) -> Result<Value, RuntimeError> {
+    pub fn run(&self, registry: &mut Registry) -> Result<Value, RuntimeError> {
         let mut stack = Vec::new();
         for ins in self.instructions.iter().copied() {
             match ins {
                 Instruction::Noop => {}
                 Instruction::PushLit(v) => stack.push(v),
-                Instruction::PushVariable { ident } => stack.push(registry.vars[ident as usize].1),
+                Instruction::PushVariable { ident } => stack.push(registry.var(ident)),
                 Instruction::Call { ident, arg_count } => {
                     let arg_count = arg_count as usize;
                     if arg_count > stack.len() {
@@ -41,7 +43,7 @@ impl Program {
                     }
 
                     let args = &stack[stack.len() - arg_count..];
-                    let ret = registry.fns[ident as usize].1(args);
+                    let ret = registry.call(ident, args);
 
                     stack.drain(stack.len() - arg_count..);
                     stack.push(ret);
